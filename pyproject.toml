@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "otter-data"
+version = "1.0.0"
+description = "Local AI data analyst (Ollama) with validated SQL and auditable evidence"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn>=0.34,<1",
+    "pydantic>=2.11,<3",
+    "pydantic-settings>=2.9,<3",
+    "SQLAlchemy>=2.0.40,<3",
+    "psycopg[binary]>=3.2.6,<4",
+    "PyYAML>=6.0.2,<7",
+    "python-dotenv>=1.0,<2",
+    "sqlglot==30.21.0",
+    "langgraph==1.2.12",
+    "duckdb==1.5.6",
+    "PyMySQL==1.2.3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3,<10", "httpx>=0.28,<1", "ruff>=0.11,<1"]
+desktop = ["pywebview==6.2.1", "keyring==25.7.0"]
+build = ["pyinstaller==6.22.3"]
+
+[tool.setuptools.packages.find]
+include = ["backend*", "scripts*", "desktop*"]
+
+[tool.setuptools.package-data]
+backend = ["semantic/*.yaml", "database/*.sql"]
+desktop = ["splash.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: exige PostgreSQL local inicializado e populado"]
+addopts = "-ra --import-mode=importlib"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

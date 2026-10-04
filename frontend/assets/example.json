@@ -1,0 +1,153 @@
+{
+ "question": "Quais regiões tiveram maior receita recebida em setembro de 2026?",
+ "reference_date": "2026-09-30",
+ "recorded_on": "2026-10-03",
+ "data": {
+  "request_id": "db94c88b-1019-4a78-81d9-72af3c54cdd4",
+  "status": "success",
+  "code": "ok",
+  "answer": "Receita recebida de 01/09/2026 a 30/09/2026, por região:\nSouth: R$ 1.130.867,83.\nCentral-West: R$ 1.101.836,35.\nNortheast: R$ 1.079.208,50.\nNorth: R$ 1.042.099,97.\nSoutheast: R$ 825.090,13.",
+  "provider": "ollama",
+  "model": "gemma4:31b-cloud",
+  "demo_mode": false,
+  "source_id": "sample",
+  "source_name": "Exemplo: e-commerce sintético",
+  "reference_date": "2026-09-30",
+  "period": {
+   "start": "2026-09-01",
+   "end_exclusive": "2026-10-01",
+   "timezone": "America/Sao_Paulo"
+  },
+  "metric": {
+   "name": "received_revenue",
+   "version": 1,
+   "description": "Receita recebida em pagamentos concluídos.",
+   "unit": "BRL"
+  },
+  "analysis_mode": "metric",
+  "title": null,
+  "assumptions": [],
+  "interpretation": {
+   "action": "analyze",
+   "metric": "received_revenue",
+   "dimension": "region",
+   "start_date": "2026-09-01",
+   "end_date": "2026-10-01",
+   "region": null,
+   "clarification_question": null
+  },
+  "catalog_fields": [
+   "analytics.customers.id",
+   "analytics.customers.region_id",
+   "analytics.orders.customer_id",
+   "analytics.orders.id",
+   "analytics.payments.amount",
+   "analytics.payments.completed_at",
+   "analytics.payments.order_id",
+   "analytics.payments.status",
+   "analytics.regions.id",
+   "analytics.regions.name"
+  ],
+  "narrative": {
+   "answer": "A região South teve a maior receita, com R$ 1.130.867,83. O resultado mostra um equilíbrio bem próximo entre as quatro primeiras regiões, todas acima de R$ 1 milhão, enquanto a Southeast ficou consideravelmente atrás das demais.",
+   "highlights": [
+    "Central-West ficou em segundo lugar com R$ 1.101.836,35",
+    "Northeast e North registraram R$ 1.079.208,50 e R$ 1.042.099,97, respectivamente",
+    "A receita da Southeast foi a menor, ficando cerca de 27% abaixo da South"
+   ],
+   "caveats": [
+    "Os valores não representam a receita líquida, pois não consideram estornos."
+   ],
+   "follow_ups": [
+    "Qual foi a receita total de todas as regiões em setembro de 2026?",
+    "Como a receita da região Southeast se compara com a de agosto de 2026?",
+    "Qual a diferença percentual de receita entre a região South e a North?"
+   ],
+   "rows_shared": 5,
+   "numbers_checked": 6,
+   "unverified_numbers": []
+  },
+  "narrative_note": null,
+  "chart": null,
+  "follow_ups": [],
+  "filters": {},
+  "operational_plan": [
+   "Usar a definição versionada de received_revenue.",
+   "Filtrar por completed_at no período, com fim exclusivo.",
+   "Aplicar agregação e dimensão region.",
+   "Validar e executar uma consulta somente de leitura.",
+   "Apresentar valores retornados, SQL e limitações."
+  ],
+  "sources": [
+   "analytics.customers",
+   "analytics.orders",
+   "analytics.payments",
+   "analytics.regions"
+  ],
+  "queries_executed": 1,
+  "sql_attempts": 1,
+  "query": {
+   "request_id": "db94c88b-1019-4a78-81d9-72af3c54cdd4",
+   "status": "success",
+   "code": "ok",
+   "message": "Consulta executada.",
+   "sql": "SELECT * FROM (SELECT \"r\".\"name\" AS \"region\", SUM(\"p\".\"amount\") AS \"received_revenue\" FROM \"analytics\".\"payments\" AS \"p\" JOIN \"analytics\".\"orders\" AS \"o\" ON \"p\".\"order_id\" = \"o\".\"id\" JOIN \"analytics\".\"customers\" AS \"c\" ON \"o\".\"customer_id\" = \"c\".\"id\" JOIN \"analytics\".\"regions\" AS \"r\" ON \"c\".\"region_id\" = \"r\".\"id\" WHERE \"p\".\"status\" = 'completed' AND \"p\".\"completed_at\" >= $2 AND \"p\".\"completed_at\" < $1 GROUP BY \"r\".\"name\" ORDER BY \"received_revenue\" DESC, \"region\" ASC) AS \"_datapilot_result\" LIMIT 10001",
+   "sources": [
+    "analytics.customers",
+    "analytics.orders",
+    "analytics.payments",
+    "analytics.regions"
+   ],
+   "parameter_names": [
+    "end_date",
+    "start_date"
+   ],
+   "columns": [
+    "region",
+    "received_revenue"
+   ],
+   "rows": [
+    {
+     "region": "South",
+     "received_revenue": "1130867.83"
+    },
+    {
+     "region": "Central-West",
+     "received_revenue": "1101836.35"
+    },
+    {
+     "region": "Northeast",
+     "received_revenue": "1079208.50"
+    },
+    {
+     "region": "North",
+     "received_revenue": "1042099.97"
+    },
+    {
+     "region": "Southeast",
+     "received_revenue": "825090.13"
+    }
+   ],
+   "row_count": 5,
+   "result_bytes": 270,
+   "truncated": false,
+   "truncation_reason": null,
+   "duration_ms": 14.617,
+   "query_attempted": true,
+   "retry_hint": null
+  },
+  "limitations": [
+   "Base local sintética; não representa uma empresa real.",
+   "Não representa receita líquida; estornos não são modelados nesta seed.",
+   "Não juntar pagamentos a itens diretamente para somar valores; isso duplica pagamentos."
+  ],
+  "usage": {
+   "llm_calls": 3,
+   "provider_calls": 3,
+   "input_tokens": 4853,
+   "output_tokens": 564,
+   "complete": true
+  },
+  "duration_ms": 2545.57
+ }
+}

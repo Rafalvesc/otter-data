@@ -1,0 +1,138 @@
+{
+  "dataset_version": "ecommerce-v2",
+  "seed": 42,
+  "fingerprint": "9cb54291aaaf3eb9fb3087ae64e2e716e60b89d8b14d658d72494611206385b7",
+  "reference_date": "2026-09-30",
+  "timezone": "America/Sao_Paulo",
+  "currency": "BRL",
+  "counts": {
+    "regions": 5,
+    "customers": 1000,
+    "products": 100,
+    "orders": 10000,
+    "order_items": 25059,
+    "payments": 10000
+  },
+  "questions": [
+    {
+      "id": "new_customers",
+      "question": "Quantos clientes foram cadastrados em setembro de 2026?",
+      "sql": "SELECT COUNT(id) AS new_customers FROM analytics.customers WHERE created_at >= %s AND created_at < %s",
+      "parameters": [
+        "2026-09-01T00:00:00-03:00",
+        "2026-10-01T00:00:00-03:00"
+      ],
+      "expected": [
+        {
+          "new_customers": 70
+        }
+      ]
+    },
+    {
+      "id": "received_revenue",
+      "question": "Qual foi a receita recebida em setembro de 2026?",
+      "sql": "SELECT COALESCE(SUM(amount), 0) AS received_revenue FROM analytics.payments WHERE status = 'completed' AND completed_at >= %s AND completed_at < %s",
+      "parameters": [
+        "2026-09-01T00:00:00-03:00",
+        "2026-10-01T00:00:00-03:00"
+      ],
+      "expected": [
+        {
+          "received_revenue": "5179102.78"
+        }
+      ]
+    },
+    {
+      "id": "revenue_by_region",
+      "question": "Quais regiões tiveram maior receita recebida em setembro de 2026?",
+      "sql": "SELECT r.name AS region, SUM(p.amount) AS received_revenue FROM analytics.payments AS p JOIN analytics.orders AS o ON o.id = p.order_id JOIN analytics.customers AS c ON c.id = o.customer_id JOIN analytics.regions AS r ON r.id = c.region_id WHERE p.status = 'completed' AND p.completed_at >= %s AND p.completed_at < %s GROUP BY r.name ORDER BY received_revenue DESC, r.name ASC",
+      "parameters": [
+        "2026-09-01T00:00:00-03:00",
+        "2026-10-01T00:00:00-03:00"
+      ],
+      "expected": [
+        {
+          "region": "South",
+          "received_revenue": "1130867.83"
+        },
+        {
+          "region": "Central-West",
+          "received_revenue": "1101836.35"
+        },
+        {
+          "region": "Northeast",
+          "received_revenue": "1079208.50"
+        },
+        {
+          "region": "North",
+          "received_revenue": "1042099.97"
+        },
+        {
+          "region": "Southeast",
+          "received_revenue": "825090.13"
+        }
+      ]
+    },
+    {
+      "id": "monthly_revenue",
+      "question": "Como a receita recebida evoluiu de janeiro a setembro de 2026?",
+      "sql": "SELECT date_trunc('month', completed_at AT TIME ZONE 'America/Sao_Paulo')::date AS month, SUM(amount) AS received_revenue FROM analytics.payments WHERE status = 'completed' AND completed_at >= %s AND completed_at < %s GROUP BY month ORDER BY month",
+      "parameters": [
+        "2026-01-01T00:00:00-03:00",
+        "2026-10-01T00:00:00-03:00"
+      ],
+      "expected": [
+        {
+          "month": "2026-01-01",
+          "received_revenue": "569944.58"
+        },
+        {
+          "month": "2026-02-01",
+          "received_revenue": "746039.15"
+        },
+        {
+          "month": "2026-03-01",
+          "received_revenue": "824857.26"
+        },
+        {
+          "month": "2026-04-01",
+          "received_revenue": "1310104.09"
+        },
+        {
+          "month": "2026-05-01",
+          "received_revenue": "1634769.23"
+        },
+        {
+          "month": "2026-06-01",
+          "received_revenue": "1934764.77"
+        },
+        {
+          "month": "2026-07-01",
+          "received_revenue": "2478844.03"
+        },
+        {
+          "month": "2026-08-01",
+          "received_revenue": "3361544.67"
+        },
+        {
+          "month": "2026-09-01",
+          "received_revenue": "5179102.78"
+        }
+      ]
+    },
+    {
+      "id": "cancelled_orders",
+      "question": "Quantos pedidos foram cancelados em setembro de 2026?",
+      "sql": "SELECT COUNT(id) AS cancelled_orders FROM analytics.orders WHERE status = 'cancelled' AND cancelled_at >= %s AND cancelled_at < %s",
+      "parameters": [
+        "2026-09-01T00:00:00-03:00",
+        "2026-10-01T00:00:00-03:00"
+      ],
+      "expected": [
+        {
+          "cancelled_orders": 347
+        }
+      ]
+    }
+  ]
+}

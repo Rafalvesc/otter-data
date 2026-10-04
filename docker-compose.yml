@@ -1,0 +1,80 @@
+name: datapilot
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Execute python -m scripts.init_env}
+      POSTGRES_USER: ${POSTGRES_USER:?Execute python -m scripts.init_env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Execute python -m scripts.init_env}
+      ANALYTICS_PASSWORD: ${ANALYTICS_PASSWORD:?Execute python -m scripts.init_env}
+      SEED_PASSWORD: ${SEED_PASSWORD:?Execute python -m scripts.init_env}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sh:/docker-entrypoint-initdb.d/01-init.sh:ro
+      - ./backend/database/schema.sql:/opt/datapilot/schema.sql:ro
+      - ./backend/database/roles.sql:/opt/datapilot/roles.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  backend:
+    build: .
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${POSTGRES_DB}
+      ANALYTICS_PASSWORD: ${ANALYTICS_PASSWORD}
+      QUERY_TIMEOUT_SECONDS: ${QUERY_TIMEOUT_SECONDS:-10}
+      MAX_ROWS: ${MAX_ROWS:-10000}
+      MAX_RESULT_BYTES: ${MAX_RESULT_BYTES:-1000000}
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      # Inside the container, 127.0.0.1 is the container itself; reach the host's Ollama instead.
+      OLLAMA_BASE_URL: ${OLLAMA_DOCKER_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:31b-cloud}
+      OLLAMA_MODELS: ${OLLAMA_MODELS:-}
+      OTTER_AUTHOR: ${OTTER_AUTHOR:-}
+      HISTORY_TURNS: ${HISTORY_TURNS:-6}
+      LOCAL_LLM_TIMEOUT_SECONDS: ${LOCAL_LLM_TIMEOUT_SECONDS:-120}
+      LOCAL_REQUEST_TIMEOUT_SECONDS: ${LOCAL_REQUEST_TIMEOUT_SECONDS:-480}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-20}
+      REQUEST_TIMEOUT_SECONDS: ${REQUEST_TIMEOUT_SECONDS:-60}
+      MAX_LLM_CALLS: ${MAX_LLM_CALLS:-4}
+      MAX_CONCURRENT_REQUESTS: ${MAX_CONCURRENT_REQUESTS:-4}
+      EXPLORATION_ENABLED: ${EXPLORATION_ENABLED:-true}
+      NARRATIVE_ENABLED: ${NARRATIVE_ENABLED:-true}
+      NARRATIVE_MAX_ROWS: ${NARRATIVE_MAX_ROWS:-50}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  seed:
+    build: .
+    profiles: ["tools"]
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${POSTGRES_DB}
+      SEED_PASSWORD: ${SEED_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["python", "-m", "scripts.seed_database"]
+
+volumes:
+  postgres_data:

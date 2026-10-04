@@ -1,0 +1,9 @@
+* text=auto
+*.sh text eol=lf
+*.sql text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.png binary
+*.webp binary
+*.ico binary
+*.woff2 binary

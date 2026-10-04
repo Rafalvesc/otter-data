@@ -1,0 +1,40 @@
+version: 1
+schema: analytics
+description: Views aprovadas; tabelas core e campos sensíveis não estão disponíveis ao agente.
+tables:
+  regions:
+    grain: Uma UF representativa por região brasileira na demonstração.
+    primary_key: id
+    columns: {id: integer, name: text, state: char(2)}
+  customers:
+    grain: Um cliente fictício; região cadastral fixa, sem histórico de endereço.
+    primary_key: id
+    columns: {id: integer, region_id: integer, created_at: timestamptz}
+    relationships: {region_id: regions.id}
+  products:
+    grain: Um produto.
+    primary_key: id
+    columns: {id: integer, name: text, category: text, current_price: "numeric(12,2)"}
+  orders:
+    grain: Um pedido.
+    primary_key: id
+    columns: {id: integer, customer_id: integer, ordered_at: timestamptz, status: text, cancelled_at: timestamptz}
+    relationships: {customer_id: customers.id}
+    status_values: [paid, cancelled, pending]
+    notes: ordered_at é a data do pedido; cancelled_at só é preenchido quando status = cancelled.
+  order_items:
+    grain: Um produto em um pedido; vários itens por pedido.
+    primary_key: id
+    columns: {id: integer, order_id: integer, product_id: integer, quantity: integer, unit_price: "numeric(12,2)"}
+    relationships: {order_id: orders.id, product_id: products.id}
+    notes: unit_price é o preço no momento da compra, não o preço atual do catálogo.
+  payments:
+    grain: Um pagamento; schema permite vários por pedido, seed tem exatamente um.
+    primary_key: id
+    columns: {id: integer, order_id: integer, amount: "numeric(12,2)", status: text, completed_at: timestamptz}
+    relationships: {order_id: orders.id}
+    status_values: [completed, failed, pending]
+    notes: >-
+      Falha de pagamento não significa churn. completed_at só é preenchido quando
+      status = completed; para datar pagamentos failed ou pending, junte a orders e use ordered_at.
+sensitive_columns: [core.customers.email]

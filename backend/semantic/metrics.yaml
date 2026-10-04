@@ -1,0 +1,38 @@
+version: 1
+timezone: America/Sao_Paulo
+currency: BRL
+interval_convention: "[start, end): início incluso, fim exclusivo"
+metrics:
+  received_revenue:
+    version: 1
+    description: Receita recebida em pagamentos concluídos.
+    formula: SUM(payments.amount)
+    grain: payment
+    source: analytics.payments
+    filters: "status = 'completed'"
+    date_column: completed_at
+    unit: BRL
+    limitations:
+      - Não representa receita líquida; estornos não são modelados nesta seed.
+      - Não juntar pagamentos a itens diretamente para somar valores; isso duplica pagamentos.
+  new_customers:
+    version: 1
+    description: Clientes cadastrados no período.
+    formula: COUNT(customers.id)
+    grain: customer
+    source: analytics.customers
+    filters: none
+    date_column: created_at
+    unit: customers
+  cancelled_orders:
+    version: 1
+    description: Pedidos cujo cancelamento ocorreu no período.
+    formula: COUNT(orders.id)
+    grain: order
+    source: analytics.orders
+    filters: "status = 'cancelled'"
+    date_column: cancelled_at
+    unit: orders
+    limitations:
+      - Cancelamento de pedido não é churn de cliente.
+

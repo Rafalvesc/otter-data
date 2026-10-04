@@ -1,0 +1,23 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Build outputs (PyInstaller and the installer)
+build/
+dist/
+
+# Local data and tools
+*.duckdb
+*.log
+.playwright-mcp/

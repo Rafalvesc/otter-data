@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Otter Data: analista de dados com IA, SQL validado e evidências auditáveis.">
+  <meta name="color-scheme" content="light dark">
+  <title>Otter Data</title>
+  <link rel="icon" type="image/png" href="/static/assets/favicon.png">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/i18n.js" defer></script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <!-- Sidebar -->
+    <aside class="rail" id="rail" aria-label="Navegação">
+      <a class="brand" href="/" aria-label="Otter Data, início">
+        <img class="logo-light" src="/static/assets/logo.webp" alt="Otter Data" width="640" height="409">
+        <img class="logo-dark" src="/static/assets/logo-dark.webp" alt="" width="640" height="409">
+      </a>
+
+      <button type="button" class="new-analysis" id="new-analysis">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        Nova conversa
+        <kbd>/</kbd>
+      </button>
+
+      <section class="rail-section grow">
+        <div class="rail-head">
+          <h2>Conversas <span class="count" id="history-count"></span></h2>
+          <button type="button" class="text-button" id="clear-history">Limpar</button>
+        </div>
+        <ul class="history" id="history"></ul>
+        <p class="history-empty" id="history-empty">Suas conversas ficam guardadas só neste aparelho.</p>
+      </section>
+
+      <footer class="rail-foot">
+        <section class="sys" aria-labelledby="sys-title">
+          <h2 id="sys-title">Estado do sistema</h2>
+          <dl class="sys-list" aria-live="polite">
+            <div><dt><span class="pulse" id="api-dot"></span>API</dt><dd><span id="api-state">verificando</span></dd></div>
+            <div><dt><span class="pulse" id="provider-dot"></span>Modelo</dt><dd><span id="provider-detail">…</span><small id="provider-title">verificando</small></dd></div>
+            <div><dt><span class="pulse" id="source-dot"></span>Base</dt><dd><span id="sys-source">…</span><small id="sys-source-meta"></small></dd></div>
+          </dl>
+        </section>
+        <div class="lang-row">
+          <span id="language-title">Idioma</span>
+          <div class="segmented lang-switch" id="language-switch" role="group" aria-labelledby="language-title"
+            title="Idioma da interface e das respostas">
+            <button type="button" data-lang="pt" lang="pt-BR" aria-label="Português">PT</button>
+            <button type="button" data-lang="en" lang="en" aria-label="English">EN</button>
+          </div>
+        </div>
+        <div class="rail-actions">
+          <button type="button" class="tool-button" id="settings-button" title="Bases de dados e ajustes">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            Configurações
+          </button>
+          <button type="button" class="tool-button" id="theme-button" title="Alternar tema claro/escuro">
+            <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+            Tema
+          </button>
+        </div>
+      </footer>
+    </aside>
+    <div class="scrim" id="scrim"></div>
+
+    <!-- Main -->
+    <main class="main" id="main">
+      <header class="topbar">
+        <button type="button" class="icon-button menu-button" id="menu-button" aria-label="Abrir menu" aria-controls="rail">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+        </button>
+        <span class="topbar-brand"><img src="/static/assets/otter-face.webp" alt="" width="34" height="34"><span class="wordmark">Otter <span class="accent">Data</span></span></span>
+        <div class="source-picker">
+          <button type="button" class="source-chip" id="source-button" aria-haspopup="menu" aria-expanded="false" aria-controls="source-menu">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+            <span class="source-chip-text"><small>Base</small><strong id="source-label">Exemplo: e-commerce sintético</strong></span>
+            <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="source-menu" id="source-menu" role="menu" hidden></div>
+        </div>
+        <p class="run-state" id="run-state" role="status"><span>Status</span> <strong id="run-state-value">Pronto</strong></p>
+      </header>
+
+      <section class="thread" id="thread">
+        <div class="messages" id="messages" aria-live="polite"></div>
+      </section>
+
+      <div class="dock">
+        <form class="composer" id="ask-form" autocomplete="off">
+          <label for="question" class="sr-only">Sua pergunta</label>
+          <div class="composer-field">
+            <textarea id="question" name="question" rows="1" maxlength="2000" required
+              placeholder="Converse ou pergunte sobre os dados…"></textarea>
+            <button type="submit" class="send" id="ask-button" aria-label="Enviar pergunta">
+              Perguntar
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+            </button>
+          </div>
+          <div class="composer-bar">
+            <span class="composer-meta" id="next-entry">Pergunta 001</span>
+            <div class="date-field">
+              <button type="button" class="date-pill" id="date-button" aria-haspopup="dialog" aria-expanded="false"
+                aria-controls="calendar" title="Base para datas relativas como 'este mês'">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+                <span id="date-label">Ref. hoje</span>
+              </button>
+              <input type="hidden" id="reference-date" name="reference_date">
+              <div class="calendar" id="calendar" role="dialog" aria-label="Escolher data de referência" hidden></div>
+            </div>
+            <div class="model-field">
+              <button type="button" class="date-pill model-pill" id="model-button" aria-haspopup="menu" aria-expanded="false"
+                aria-controls="model-menu" title="Modelo de IA usado nas próximas perguntas">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10H7zM10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></svg>
+                <span id="model-label">Modelo</span>
+              </button>
+              <div class="model-menu" id="model-menu" role="menu" hidden></div>
+            </div>
+            <span class="composer-hint"><kbd>Enter</kbd> envia, <kbd>Shift</kbd>+<kbd>Enter</kbd> quebra a linha</span>
+          </div>
+        </form>
+        <p class="dock-note">As respostas podem conter erros. Confira premissas, SQL e números em “Como chegamos aqui?”. As últimas mensagens desta conversa servem de contexto.</p>
+      </div>
+
+      <template id="welcome-template">
+        <div class="welcome">
+          <section class="intro">
+            <img class="intro-art" src="/static/assets/otter-mascot.webp" alt="" width="520" height="348">
+            <div class="intro-copy">
+              <p class="kicker">Otter Data / área de trabalho</p>
+              <h2 id="intro-title">Conecte seus dados e pergunte.</h2>
+              <p id="intro-text">Ligue um banco PostgreSQL ou MySQL ou importe planilhas CSV. Cada pergunta vira
+                uma consulta só de leitura, validada antes de executar, com as evidências de cada número.</p>
+              <div class="connect-actions">
+                <button type="button" class="primary-pill" data-connect="db-form">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+                  Conectar banco
+                </button>
+                <button type="button" class="ghost-button" data-connect="csv-form">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 10h16M4 15h16"/></svg>
+                  Importar CSV
+                </button>
+              </div>
+            </div>
+            <div class="starter" id="starter">
+              <h3 class="kicker">Sem dados à mão? Teste com a base de exemplo</h3>
+              <ol class="starter-list" id="starter-list"></ol>
+            </div>
+          </section>
+          <section class="example" aria-labelledby="example-title">
+            <div class="example-head">
+              <h2 class="kicker" id="example-title">Exemplo gravado</h2>
+              <p>Conversa real na base sintética de e-commerce, registrada em 03/10/2026.</p>
+            </div>
+            <div class="example-thread" id="example-thread"></div>
+          </section>
+        </div>
+      </template>
+    </main>
+  </div>
+
+  <dialog class="settings" id="settings" aria-labelledby="settings-title">
+    <div class="settings-head">
+      <div>
+        <h2 id="settings-title">Bases de dados</h2>
+        <p>Converse com a base de exemplo, conecte o seu PostgreSQL ou MySQL, ou importe planilhas CSV.</p>
+      </div>
+      <button type="button" class="icon-button" id="settings-close" aria-label="Fechar configurações">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+
+    <div class="settings-body">
+      <section class="settings-section">
+        <h3>Suas bases</h3>
+        <ul class="source-list" id="source-list"></ul>
+      </section>
+
+      <section class="settings-section add-source">
+        <h3>Adicionar base</h3>
+        <div class="segmented" role="tablist" id="add-tabs" aria-label="Tipo de base">
+          <button type="button" role="tab" aria-selected="true" data-pane="db-form">Conectar banco</button>
+          <button type="button" role="tab" aria-selected="false" data-pane="csv-form">Importar CSV</button>
+        </div>
+
+        <form class="source-form" id="db-form" autocomplete="off" novalidate>
+          <fieldset class="kind-picker">
+            <legend class="sr-only">Tipo de banco</legend>
+            <label><input type="radio" name="kind" value="postgres" checked><span>PostgreSQL</span></label>
+            <label><input type="radio" name="kind" value="mysql"><span>MySQL</span></label>
+          </fieldset>
+          <label class="field wide"><span>Nome para identificar</span>
+            <input name="name" required maxlength="80" placeholder="Ex.: Loja — réplica de leitura"></label>
+          <label class="field grow"><span>Servidor</span>
+            <input name="host" required maxlength="255" placeholder="localhost ou db.empresa.com" spellcheck="false"></label>
+          <label class="field small"><span>Porta</span>
+            <input name="port" type="number" min="1" max="65535" value="5432" required></label>
+          <label class="field"><span>Banco</span>
+            <input name="database" required maxlength="128" spellcheck="false"></label>
+          <label class="field"><span>Schema <em>(opcional)</em></span>
+            <input name="schema_name" maxlength="64" placeholder="public" spellcheck="false"></label>
+          <label class="field"><span>Usuário</span>
+            <input name="user" required maxlength="128" autocomplete="off" spellcheck="false"></label>
+          <label class="field"><span>Senha</span>
+            <input name="password" type="password" maxlength="512" autocomplete="new-password"></label>
+          <label class="switch wide"><input type="checkbox" name="allow_rows_to_llm"><span class="track" aria-hidden="true"></span>
+            <span>Permitir que a IA leia os resultados para escrever a resposta</span></label>
+          <p class="form-help wide">Use um usuário com permissão <strong>só de leitura</strong>. A senha fica no Cofre de Credenciais do Windows, nunca em arquivo nem na IA. No app desktop, <code>localhost</code> é este computador.</p>
+          <div class="form-actions wide">
+            <button type="submit" class="primary-pill">Testar e conectar</button>
+            <span class="form-status" role="status"></span>
+          </div>
+        </form>
+
+        <form class="source-form" id="csv-form" autocomplete="off" novalidate hidden>
+          <label class="field wide"><span>Nome para identificar</span>
+            <input name="name" required maxlength="80" placeholder="Ex.: Vendas 2026"></label>
+          <label class="file-drop wide">
+            <input type="file" name="files" accept=".csv,text/csv" multiple required>
+            <span class="file-drop-text"><strong>Escolha um ou mais arquivos CSV</strong><small>Cada arquivo vira uma tabela. A primeira linha deve ter os nomes das colunas. Até 50 MB por arquivo.</small></span>
+          </label>
+          <label class="switch wide"><input type="checkbox" name="allow_rows_to_llm"><span class="track" aria-hidden="true"></span>
+            <span>Permitir que a IA leia os resultados para escrever a resposta</span></label>
+          <div class="form-actions wide">
+            <button type="submit" class="primary-pill">Importar</button>
+            <span class="form-status" role="status"></span>
+          </div>
+        </form>
+      </section>
+
+      <p class="privacy-note">
+        A IA recebe só nomes de tabelas e colunas para escrever o SQL. Colunas com cara de dado pessoal (e-mail, CPF, telefone, senha…) ficam ocultas e bloqueadas. Linhas do resultado só vão para a IA nas bases em que você permitir. Toda consulta roda em transação somente leitura, com tempo limite.
+      </p>
+    </div>
+  </dialog>
+
+  <dialog class="confirm" id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+    <form method="dialog">
+      <p class="kicker" id="confirm-kicker">Confirmação</p>
+      <h2 id="confirm-title"></h2>
+      <p class="confirm-message" id="confirm-message"></p>
+      <div class="confirm-actions">
+        <button type="submit" class="ghost-button" value="cancel" autofocus>Cancelar</button>
+        <button type="submit" class="danger-button" value="confirm" id="confirm-accept">Confirmar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="tooltip" id="tooltip" role="status" hidden></div>
+  <div class="toast" id="toast" role="status" hidden></div>
+</body>
+</html>
