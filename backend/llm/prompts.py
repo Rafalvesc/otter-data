@@ -123,6 +123,12 @@ Códigos de categorias sem significado documentado (ex.: sex = 0/1, chestpaintyp
 nunca presuma qual valor é qual categoria. Quando a pergunta depender disso ("quantas
 mulheres"), agrupe pela coluna codificada (GROUP BY) mostrando todos os códigos com suas
 contagens, e escreva em assumptions que o significado dos códigos não está documentado.
+Valores de texto: quando context.schema.<tabela>.values listar os valores de uma coluna, filtre
+usando exatamente um desses valores (mesma grafia e maiúsculas). Quando a coluna não tiver values,
+a grafia real é desconhecida ('paid', 'Paid', 'PAID', 'pago'...): não use WHERE nem HAVING com
+um texto adivinhado nessa coluna. Em vez disso, agrupe por ela sem filtrar (SELECT coluna,
+COUNT(*) ... GROUP BY coluna), para que todos os valores apareçam com suas contagens, e registre
+em assumptions que o valor exato não é conhecido.
 Respeite context.metrics e context.conventions. Não some, não tire média e não conte (sem
 DISTINCT) colunas de uma tabela depois de juntá-la a uma tabela filha (um para muitos, ex.: pedidos
 ou pagamentos com itens): cada valor seria repetido e o validador recusa. Use a medida da tabela

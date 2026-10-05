@@ -99,7 +99,7 @@ backend/
 desktop/        desktop app (pywebview) and splash screen
 frontend/       interface (HTML, CSS and JavaScript, no build step; i18n.js holds English)
 packaging/      PyInstaller and Inno Setup
-scripts/        utilities: .env, database load, command-line questions, model evaluation, icons
+scripts/        utilities: .env, database load, command-line questions, model evaluation, icons and installer images
 tests/          unit, SQL security and PostgreSQL integration tests
 evaluation/     reference questions and expected answers
 docs/           security, verification history, project plan and images

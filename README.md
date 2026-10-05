@@ -78,7 +78,7 @@ flowchart TD
 ## Features
 
 - **Natural conversation with memory.** Follow-ups like "and in August?" work, and general questions are answered without touching the database.
-- **Your own data.** PostgreSQL, MySQL (password kept in the Windows Credential Manager) or CSV files imported into a local DuckDB database. Columns that look like personal data are hidden.
+- **Your own data.** PostgreSQL, MySQL (password kept in the Windows Credential Manager), MongoDB (copied into a local, read-only snapshot: embedded documents become columns, arrays of documents become linked tables) or CSV files imported into a local DuckDB database. Columns that look like personal data are hidden, and the model only learns the real values of category columns (like a status) for sources where you let it read results.
 - **Charts on request.** "Make a pie chart of revenue by category." The AI only picks the chart type and the columns; the backend checks them against the data before drawing.
 - **A visible trace.** "How did we get here?" shows the interpretation, the catalog fields used, the executed SQL, the validation, the execution and the evidence for each answer.
 - **Error recovery.** When the SQL is refused or the database rejects it, the reason goes back to the model as a fixed hint for one retry. Raw database messages are never passed on, because they may contain data.

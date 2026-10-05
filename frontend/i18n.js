@@ -56,8 +56,8 @@ const I18N = (() => {
     "Otter Data / área de trabalho": "Otter Data / workspace",
     "Pergunte aos seus dados.": "Ask your data.",
     "Conecte seus dados e pergunte.": "Connect your data and ask.",
-    "Ligue um banco PostgreSQL ou MySQL ou importe planilhas CSV. Cada pergunta vira uma consulta só de leitura, validada antes de executar, com as evidências de cada número.":
-      "Connect a PostgreSQL or MySQL database or import CSV spreadsheets. Every question becomes a read-only query, validated before it runs, with the evidence behind each number.",
+    "Ligue um banco PostgreSQL, MySQL ou MongoDB, ou importe planilhas CSV. Cada pergunta vira uma consulta só de leitura, validada antes de executar, com as evidências de cada número.":
+      "Connect a PostgreSQL, MySQL or MongoDB database, or import CSV spreadsheets. Every question becomes a read-only query, validated before it runs, with the evidence behind each number.",
     "Conversando com {name}. Cada pergunta vira uma consulta só de leitura, validada antes de executar, com as evidências de cada número.":
       "Talking to {name}. Every question becomes a read-only query, validated before it runs, with the evidence behind each number.",
     "Sem dados à mão? Teste com a base de exemplo": "No data at hand? Try the sample data",
@@ -67,8 +67,12 @@ const I18N = (() => {
 
     // ---------- Settings ----------
     "Bases de dados": "Databases",
-    "Converse com a base de exemplo, conecte o seu PostgreSQL ou MySQL, ou importe planilhas CSV.":
-      "Chat with the sample data, connect your PostgreSQL or MySQL, or import CSV spreadsheets.",
+    "Converse com a base de exemplo, conecte o seu PostgreSQL, MySQL ou MongoDB, ou importe planilhas CSV.":
+      "Chat with the sample data, connect your PostgreSQL, MySQL or MongoDB, or import CSV spreadsheets.",
+    "Banco de autenticação": "Authentication database",
+    "Lendo as coleções e montando a cópia local…": "Reading the collections and building the local copy…",
+    "O Otter Data copia as coleções para uma base local, só de leitura, e responde a partir dessa cópia; use Atualizar para buscar dados novos. Subdocumentos viram colunas e listas de subdocumentos viram tabelas ligadas ao documento. Até 100 mil documentos por coleção.":
+      "Otter Data copies the collections into a local, read-only database and answers from that copy; use Refresh to fetch new data. Embedded documents become columns and arrays of documents become tables linked to their document. Up to 100,000 documents per collection.",
     "Fechar configurações": "Close settings",
     "Suas bases": "Your data sources",
     "Adicionar base": "Add a data source",
@@ -97,8 +101,8 @@ const I18N = (() => {
     "Cada arquivo vira uma tabela. A primeira linha deve ter os nomes das colunas. Até 50 MB por arquivo.":
       "Each file becomes a table. The first row must hold the column names. Up to 50 MB per file.",
     "Importar": "Import",
-    "A IA recebe só nomes de tabelas e colunas para escrever o SQL. Colunas com cara de dado pessoal (e-mail, CPF, telefone, senha…) ficam ocultas e bloqueadas. Linhas do resultado só vão para a IA nas bases em que você permitir. Toda consulta roda em transação somente leitura, com tempo limite.":
-      "The AI only receives table and column names to write the SQL. Columns that look like personal data (email, tax ID, phone, password…) are hidden and blocked. Result rows only reach the AI for sources where you allow it. Every query runs in a read-only transaction with a time limit.",
+    "A IA recebe só nomes de tabelas e colunas para escrever o SQL. Colunas com cara de dado pessoal (e-mail, CPF, telefone, senha…) ficam ocultas e bloqueadas. Linhas do resultado e os valores de colunas de categoria (como um status) só vão para a IA nas bases em que você permitir. Toda consulta roda em transação somente leitura, com tempo limite.":
+      "The AI only receives table and column names to write the SQL. Columns that look like personal data (email, tax ID, phone, password…) are hidden and blocked. Result rows and the values of category columns (like a status) only reach the AI for sources where you allow it. Every query runs in a read-only transaction with a time limit.",
     "Confirmação": "Confirmation",
     "Cancelar": "Cancel",
     "Confirmar": "Confirm",
@@ -213,6 +217,25 @@ const I18N = (() => {
     "Qual produto mais vale a pena vender?": "Which product is most worth selling?",
     "Como estão as vendas?": "How are sales going?",
     "Quantos pedidos existem por status?": "How many orders are there per status?",
+
+    // ---------- Ollama setup help ----------
+    "Falta ligar o Ollama": "Ollama needs to be set up",
+    "O Otter Data usa o Ollama para entender as perguntas e escrever as respostas, e ele não está respondendo neste computador. Para começar:":
+      "Otter Data uses Ollama to understand questions and write the answers, and it is not responding on this computer. To get started:",
+    "Baixe e instale o Ollama em ": "Download and install Ollama from ",
+    ". Se ele já estiver instalado, abra o app do Ollama.": ". If it is already installed, open the Ollama app.",
+    "Para usar o modelo padrão, na nuvem, abra um terminal e rode ": "To use the default cloud model, open a terminal and run ",
+    ". Para usar sem internet, baixe um modelo local: ": ". To work offline, download a local model: ",
+    "Volte aqui e pergunte de novo.": "Come back here and ask again.",
+    "Este modelo não está no seu Ollama": "This model is not in your Ollama",
+    "O modelo {model} não foi encontrado no Ollama deste computador.": "The model {model} was not found in this computer's Ollama.",
+    "Para um modelo local, abra um terminal e rode ": "For a local model, open a terminal and run ",
+    "Para um modelo na nuvem (terminado em -cloud), rode ": "For a cloud model (ending in -cloud), run ",
+    "Ou escolha outro modelo no seletor abaixo da caixa de pergunta.": "Or pick another model in the selector below the question box.",
+    "Entre na sua conta do Ollama": "Sign in to your Ollama account",
+    "Os modelos na nuvem, como o padrão, pedem login na sua conta do Ollama.": "Cloud models, like the default one, need you to sign in to your Ollama account.",
+    "Abra um terminal e rode ": "Open a terminal and run ",
+    "Ou escolha um modelo local no seletor abaixo da caixa de pergunta.": "Or pick a local model in the selector below the question box.",
 
     // ---------- Answers ----------
     "Receita recebida": "Received revenue",
@@ -359,6 +382,12 @@ const I18N = (() => {
       "The system credential vault is not available; use the app on Windows.",
     "Não foi possível conectar ao PostgreSQL; confira host, porta, usuário e senha.":
       "Could not connect to PostgreSQL; check host, port, user and password.",
+    "Não foi possível conectar ao MongoDB; confira servidor, porta, usuário e senha.":
+      "Could not connect to MongoDB; check host, port, user and password.",
+    "O MongoDB recusou o acesso; confira usuário, senha, banco de autenticação e se o usuário pode ler esse banco.":
+      "MongoDB refused access; check user, password, authentication database and whether the user can read this database.",
+    "O MongoDB excedeu o tempo permitido ao ler as coleções.": "MongoDB exceeded the time limit while reading the collections.",
+    "Não foi possível montar a cópia local do MongoDB.": "Could not build the local copy of MongoDB.",
     "Não foi possível conectar ao MySQL; confira host, porta, usuário e senha.":
       "Could not connect to MySQL; check host, port, user and password.",
     "Conectou, mas não foi possível ler a estrutura do banco com esse usuário.":
@@ -482,6 +511,8 @@ const I18N = (() => {
     [/^tabela (\S+) \(limite de (\d+) tabelas\)$/, "table $1 (limit of $2 tables)"],
     [/^coluna (\S+) \(limite de (\d+) colunas\)$/, "column $1 (limit of $2 columns)"],
     [/^tabela (\S+)$/, "table $1"],
+    [/^coleção (\S+) \(limite de (\d+) coleções\)$/, "collection $1 (limit of $2 collections)"],
+    [/^coleção (\S+): importados os primeiros (\d+) documentos$/, "collection $1: imported the first $2 documents"],
     [/^coluna (\S+)$/, "column $1"],
     [/^Resposta em linguagem natural indisponível \((\w+)\)\.$/, "Natural-language answer unavailable ($1)."],
     [/^O gráfico de (barras|linha|dispersão|pizza) pedido não foi desenhado: (.+)\. Os dados aparecem em tabela\.$/,
@@ -490,6 +521,8 @@ const I18N = (() => {
       "$1 of $2 would count repeated values: the join with $3 brings several rows for each row of $4. Use the measure from the most detailed table, COUNT(DISTINCT ...) to count, or filter with IN (SELECT ...) instead of joining (e.g. WHERE x.order_id IN (SELECT order_id FROM ... WHERE ...))."],
     [/^Parâmetros ausentes ou excedentes\.(?: Sem valor: ([^.]+)\.)?(?: Não usados no SQL: ([^.]+)\.)? Cada :nome .*$/,
       (_, missing, extra) => `Missing or extra parameters.${missing ? ` No value: ${missing}.` : ""}${extra ? ` Not used in the SQL: ${extra}.` : ""} Every :name in the SQL needs a value in parameters, with the same name.`],
+    [/^Inclua no SELECT as colunas do GROUP BY \((.+)\), para que cada linha do resultado diga a que grupo pertence\.$/,
+      "Include the GROUP BY columns ($1) in the SELECT, so every result row says which group it belongs to."],
     [/^Use somente tabelas aprovadas, qualificadas como (\S+)\.$/, "Use only approved tables, qualified as $1."],
     [/^Função (.+) não permitida; use só as funções autorizadas\.$/, "Function $1 is not allowed; use only authorized functions."],
     [/^Consulta grande demais \((\d+) SELECTs, (\d+) joins; máximo 8 e 6\)\. Simplifique: faça os joins uma vez só e agregue com GROUP BY\.$/,

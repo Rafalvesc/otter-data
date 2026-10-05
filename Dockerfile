@@ -4,7 +4,6 @@ WORKDIR /app
 COPY requirements.lock pyproject.toml ./
 COPY backend ./backend
 COPY scripts ./scripts
-COPY examples ./examples
 COPY frontend ./frontend
 RUN pip install --no-cache-dir -c requirements.lock . \
     && pip check \

@@ -132,7 +132,7 @@
             <div class="intro-copy">
               <p class="kicker">Otter Data / área de trabalho</p>
               <h2 id="intro-title">Conecte seus dados e pergunte.</h2>
-              <p id="intro-text">Ligue um banco PostgreSQL ou MySQL ou importe planilhas CSV. Cada pergunta vira
+              <p id="intro-text">Ligue um banco PostgreSQL, MySQL ou MongoDB, ou importe planilhas CSV. Cada pergunta vira
                 uma consulta só de leitura, validada antes de executar, com as evidências de cada número.</p>
               <div class="connect-actions">
                 <button type="button" class="primary-pill" data-connect="db-form">
@@ -166,7 +166,7 @@
     <div class="settings-head">
       <div>
         <h2 id="settings-title">Bases de dados</h2>
-        <p>Converse com a base de exemplo, conecte o seu PostgreSQL ou MySQL, ou importe planilhas CSV.</p>
+        <p>Converse com a base de exemplo, conecte o seu PostgreSQL, MySQL ou MongoDB, ou importe planilhas CSV.</p>
       </div>
       <button type="button" class="icon-button" id="settings-close" aria-label="Fechar configurações">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
@@ -191,6 +191,7 @@
             <legend class="sr-only">Tipo de banco</legend>
             <label><input type="radio" name="kind" value="postgres" checked><span>PostgreSQL</span></label>
             <label><input type="radio" name="kind" value="mysql"><span>MySQL</span></label>
+            <label><input type="radio" name="kind" value="mongodb"><span>MongoDB</span></label>
           </fieldset>
           <label class="field wide"><span>Nome para identificar</span>
             <input name="name" required maxlength="80" placeholder="Ex.: Loja — réplica de leitura"></label>
@@ -200,14 +201,15 @@
             <input name="port" type="number" min="1" max="65535" value="5432" required></label>
           <label class="field"><span>Banco</span>
             <input name="database" required maxlength="128" spellcheck="false"></label>
-          <label class="field"><span>Schema <em>(opcional)</em></span>
+          <label class="field"><span><span id="schema-label">Schema</span> <em>(opcional)</em></span>
             <input name="schema_name" maxlength="64" placeholder="public" spellcheck="false"></label>
-          <label class="field"><span>Usuário</span>
+          <label class="field"><span>Usuário <em id="user-optional" hidden>(opcional)</em></span>
             <input name="user" required maxlength="128" autocomplete="off" spellcheck="false"></label>
           <label class="field"><span>Senha</span>
             <input name="password" type="password" maxlength="512" autocomplete="new-password"></label>
           <label class="switch wide"><input type="checkbox" name="allow_rows_to_llm"><span class="track" aria-hidden="true"></span>
             <span>Permitir que a IA leia os resultados para escrever a resposta</span></label>
+          <p class="form-help wide" id="mongo-help" hidden>O Otter Data copia as coleções para uma base local, só de leitura, e responde a partir dessa cópia; use Atualizar para buscar dados novos. Subdocumentos viram colunas e listas de subdocumentos viram tabelas ligadas ao documento. Até 100 mil documentos por coleção.</p>
           <p class="form-help wide">Use um usuário com permissão <strong>só de leitura</strong>. A senha fica no Cofre de Credenciais do Windows, nunca em arquivo nem na IA. No app desktop, <code>localhost</code> é este computador.</p>
           <div class="form-actions wide">
             <button type="submit" class="primary-pill">Testar e conectar</button>
@@ -232,7 +234,7 @@
       </section>
 
       <p class="privacy-note">
-        A IA recebe só nomes de tabelas e colunas para escrever o SQL. Colunas com cara de dado pessoal (e-mail, CPF, telefone, senha…) ficam ocultas e bloqueadas. Linhas do resultado só vão para a IA nas bases em que você permitir. Toda consulta roda em transação somente leitura, com tempo limite.
+        A IA recebe só nomes de tabelas e colunas para escrever o SQL. Colunas com cara de dado pessoal (e-mail, CPF, telefone, senha…) ficam ocultas e bloqueadas. Linhas do resultado e os valores de colunas de categoria (como um status) só vão para a IA nas bases em que você permitir. Toda consulta roda em transação somente leitura, com tempo limite.
       </p>
     </div>
   </dialog>

@@ -56,7 +56,7 @@ A carga usa uma transação e um lock para serializar tentativas de seed. Reexec
 
 ## Bases de dados próprias
 
-O usuário pode conectar PostgreSQL ou MySQL e importar CSV (DuckDB local). Isso permite dados reais; os controles abaixo valem para essas bases e não substituem uma conta de banco com permissão só de leitura, que a interface pede explicitamente.
+O usuário pode conectar PostgreSQL, MySQL ou MongoDB e importar CSV (DuckDB local). Isso permite dados reais; os controles abaixo valem para essas bases e não substituem uma conta de banco com permissão só de leitura, que a interface pede explicitamente.
 
 - **Credenciais:** recebidas uma única vez pela API, guardadas no Cofre de Credenciais do Windows via `keyring` e nunca persistidas em arquivo, devolvidas pela API, registradas em log ou enviadas ao modelo. O campo de senha é limpo na página logo após o envio. Remover a base apaga a credencial do cofre.
 - **Somente leitura em camadas:** validador determinístico no dialeto da base (`postgres`, `mysql` ou `duckdb`), tabelas qualificadas no schema/banco configurado, joins apenas por chaves descobertas; sessão PostgreSQL com `default_transaction_read_only`, `SET TRANSACTION READ ONLY`, `statement_timeout` e `lock_timeout`; sessão MySQL com `SET SESSION TRANSACTION READ ONLY`, `START TRANSACTION READ ONLY` e `max_execution_time`; DuckDB aberto com `read_only=True` e interrompido pelo tempo limite. Testes de integração provam que uma conta PostgreSQL com permissão de escrita e uma conta MySQL não conseguem escrever pela sessão, mesmo sem o validador.
@@ -130,3 +130,10 @@ Quando uma consulta aprovada falha na execução, a mensagem do driver nunca vai
 
 Sem credenciais do PostgreSQL configuradas, a base de exemplo é gerada localmente em DuckDB (`%LOCALAPPDATA%\OtterData\sample-ecommerce-v2.duckdb`), a partir do mesmo gerador determinístico, sem a coluna `email`. Ela é aberta somente para leitura, passa pelo mesmo validador (dialeto DuckDB) e funciona em modo exploração; as definições das métricas vão ao modelo como documentação, sem a vinculação de parâmetros das métricas versionadas.
 
+## MongoDB (cópia local)
+
+O MongoDB não usa SQL, então não é consultado diretamente: ao conectar (e a cada "Atualizar"), o app lê as coleções com `find` e copia os documentos para um arquivo DuckDB local, e todas as perguntas rodam como SQL validado sobre essa cópia, com as mesmas regras das outras bases. Contra o MongoDB só são usados `ping`, `list_collection_names` e `find`, com tempo limite e no máximo 100 mil documentos por coleção (o limite é registrado na estrutura da base). Subdocumentos viram colunas (`endereco.cidade` → `endereco_cidade`), listas de subdocumentos viram tabelas filhas ligadas ao documento pai (`orders.items` → `orders_items.orders_id`) e outras listas ficam como texto JSON. A cópia nova é montada num arquivo temporário e só substitui a anterior se der certo. Recomenda-se um usuário com o papel `read`; a senha vai para o Cofre de Credenciais do Windows, e servidores sem autenticação não guardam senha. Mensagens de erro do MongoDB nunca são repassadas: só textos fixos (conexão, acesso recusado, tempo esgotado).
+
+## Valores de colunas de categoria
+
+O modelo escreve filtros de texto (ex.: `status = 'cancelled'`) sem ver os dados, então pode errar a grafia e devolver zero com confiança. Nas bases em que o usuário permite que a IA leia resultados, o app envia os valores distintos de colunas de texto curtas (até 12 valores, até 60 caracteres, nunca colunas ocultas, identificadores, datas ou listas JSON), obtidos por consultas `SELECT DISTINCT` que passam pelo validador; os valores ficam só em memória. Sem essa permissão, o modelo é instruído a não filtrar por texto adivinhado e agrupar pela coluna, e o validador recusa um `GROUP BY` principal cuja coluna não aparece no resultado, para que cada linha diga a que grupo pertence.

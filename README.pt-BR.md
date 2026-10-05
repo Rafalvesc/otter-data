@@ -78,7 +78,7 @@ flowchart TD
 ## Recursos
 
 - **Conversa natural com memória.** Continuações como "e em agosto?" funcionam, e perguntas gerais são respondidas sem consultar o banco.
-- **Seus próprios dados.** PostgreSQL, MySQL (senha no Cofre de Credenciais do Windows) ou CSV importado para um DuckDB local. Colunas com cara de dado pessoal ficam ocultas.
+- **Seus próprios dados.** PostgreSQL, MySQL (senha no Cofre de Credenciais do Windows), MongoDB (copiado para uma base local somente leitura: subdocumentos viram colunas e listas de subdocumentos viram tabelas ligadas) ou CSV importado para um DuckDB local. Colunas com cara de dado pessoal ficam ocultas, e o modelo só conhece os valores reais de colunas de categoria (como um status) nas bases em que você permite a leitura de resultados.
 - **Gráficos sob pedido.** "Faça um gráfico de pizza da receita por categoria." A IA escolhe só o tipo e as colunas; o backend confere contra os dados antes de desenhar.
 - **Rastro visível.** "Como chegamos aqui?" mostra a interpretação, os campos do catálogo, o SQL executado, a validação, a execução e as evidências de cada resposta.
 - **Recuperação de erros.** Quando o SQL é recusado ou o banco o rejeita, o motivo volta ao modelo como uma dica fixa para uma nova tentativa. A mensagem do banco nunca é repassada, porque pode conter dados.

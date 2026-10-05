@@ -405,3 +405,16 @@ def test_parameter_mismatch_names_what_to_fix(validator):
     assert not result.allowed and result.repairable
     assert "Sem valor: :end_date." in result.message
     assert "Não usados no SQL: :day." in result.message
+
+
+def test_top_level_groups_must_show_their_key(validator):
+    result = validator.validate("SELECT COUNT(id) AS n FROM analytics.orders GROUP BY status")
+    assert not result.allowed and result.repairable and "status" in result.message
+    assert validator.validate(
+        "SELECT status, COUNT(id) AS n FROM analytics.orders GROUP BY status"
+    ).allowed
+    # A subquery may group by a key it does not select; the outer query aggregates it.
+    assert validator.validate(
+        "SELECT AVG(t.n) AS average FROM (SELECT COUNT(id) AS n FROM analytics.orders "
+        "GROUP BY customer_id) AS t"
+    ).allowed

@@ -15,13 +15,16 @@ datas = [
     *collect_data_files("tzdata"),  # zoneinfo on Windows has no system time zone database
 ]
 
-# Loaded by name at run time: uvicorn workers, keyring backends, LangGraph internals and the
-# SQL dialects sqlglot imports lazily (postgres, mysql, duckdb).
+# Loaded by name at run time: uvicorn workers, keyring backends, LangGraph internals, the
+# SQL dialects sqlglot imports lazily (postgres, mysql, duckdb), and the DNS record types
+# pymongo needs for MongoDB Atlas (mongodb+srv) hosts.
 hiddenimports = [
     *collect_submodules("uvicorn"),
     *collect_submodules("sqlglot.dialects"),
     *collect_submodules("keyring.backends"),
     *collect_submodules("langgraph"),
+    *collect_submodules("pymongo"),
+    *collect_submodules("dns"),
     "backend.main",
     "backend.runtime",
 ]

@@ -401,9 +401,9 @@ const STEP_LABELS = { wait: t("aguardando"), run: t("analisando"), ok: t("ok"), 
 /* ---------- Data sources ---------- */
 
 const SAMPLE_SOURCE = "sample";
-const KIND_LABELS = { sample: t("Exemplo"), postgres: "PostgreSQL", mysql: "MySQL", csv: "CSV" };
-const KIND_ICONS = { sample: "sparkle", postgres: "db", mysql: "db", csv: "rows" };
-const DEFAULT_PORTS = { postgres: "5432", mysql: "3306" };
+const KIND_LABELS = { sample: t("Exemplo"), postgres: "PostgreSQL", mysql: "MySQL", mongodb: "MongoDB", csv: "CSV" };
+const KIND_ICONS = { sample: "sparkle", postgres: "db", mysql: "db", mongodb: "db", csv: "rows" };
+const DEFAULT_PORTS = { postgres: "5432", mysql: "3306", mongodb: "27017" };
 let sources = [];
 let currentSourceId = store.get("otterdata.source", SAMPLE_SOURCE);
 
@@ -671,13 +671,14 @@ async function connectDatabase(event) {
     allow_rows_to_llm: data.get("allow_rows_to_llm") === "on",
   };
   form.elements.password.value = ""; // never keep the password in the page longer than needed
-  if (!payload.name || !payload.host || !payload.database || !payload.user) {
+  const mongodb = payload.kind === "mongodb";
+  if (!payload.name || !payload.host || !payload.database || (!payload.user && !mongodb)) {
     setStatus(form, t("Preencha nome, servidor, banco e usuário."), "error");
     return;
   }
   const button = form.querySelector("[type=submit]");
   button.disabled = true;
-  setStatus(form, t("Conectando e lendo a estrutura do banco…"), "busy");
+  setStatus(form, t(mongodb ? "Lendo as coleções e montando a cópia local…" : "Conectando e lendo a estrutura do banco…"), "busy");
   try {
     const created = await api("/api/v1/sources/database", {
       method: "POST",
@@ -685,6 +686,7 @@ async function connectDatabase(event) {
       body: JSON.stringify(payload),
     });
     form.reset();
+    syncDatabaseKind(form);
     setStatus(form, t("Conectado: {count} tabelas encontradas.", { count: created.tables }), "ok");
     await loadSources();
     chooseSource(created.id);
@@ -733,6 +735,20 @@ async function importCsv(event) {
   }
 }
 
+// The connection form adapts to the database kind: port, the schema field (the authentication
+// database for MongoDB), whether a user is required, and the note about MongoDB's local copy.
+function syncDatabaseKind(form) {
+  const kind = form.elements.kind.value;
+  const mongodb = kind === "mongodb";
+  const port = form.elements.port;
+  if (Object.values(DEFAULT_PORTS).includes(port.value)) port.value = DEFAULT_PORTS[kind];
+  $("#schema-label").textContent = mongodb ? t("Banco de autenticação") : "Schema";
+  form.elements.schema_name.placeholder = mongodb ? "admin" : kind === "postgres" ? "public" : t("mesmo nome do banco");
+  form.elements.user.required = !mongodb;
+  $("#user-optional").hidden = !mongodb;
+  $("#mongo-help").hidden = !mongodb;
+}
+
 function updateFileLabel(form) {
   const files = [...form.elements.files.files];
   form.querySelector(".file-drop-text strong").textContent = files.length
@@ -759,10 +775,7 @@ function wireSettings() {
   const dbForm = $("#db-form");
   dbForm.addEventListener("submit", connectDatabase);
   dbForm.addEventListener("change", (event) => {
-    if (event.target.name !== "kind") return;
-    const port = dbForm.elements.port;
-    if (Object.values(DEFAULT_PORTS).includes(port.value)) port.value = DEFAULT_PORTS[event.target.value];
-    dbForm.elements.schema_name.placeholder = event.target.value === "postgres" ? "public" : t("mesmo nome do banco");
+    if (event.target.name === "kind") syncDatabaseKind(dbForm);
   });
   const csvForm = $("#csv-form");
   csvForm.addEventListener("submit", importCsv);
@@ -932,7 +945,7 @@ function renderStarters() {
   box.hidden = !sample;
   $("#intro-title").textContent = t(sample ? "Conecte seus dados e pergunte." : "Pergunte aos seus dados.");
   $("#intro-text").textContent = sample
-    ? t("Ligue um banco PostgreSQL ou MySQL ou importe planilhas CSV. Cada pergunta vira uma consulta só de leitura, validada antes de executar, com as evidências de cada número.")
+    ? t("Ligue um banco PostgreSQL, MySQL ou MongoDB, ou importe planilhas CSV. Cada pergunta vira uma consulta só de leitura, validada antes de executar, com as evidências de cada número.")
     : t("Conversando com {name}. Cada pergunta vira uma consulta só de leitura, validada antes de executar, com as evidências de cada número.", { name: currentSource()?.name ?? t("base") });
   $("#starter-list").replaceChildren(...SUGGESTIONS.map((question, index) =>
     el("li", {},
@@ -1283,7 +1296,56 @@ function renderResponse(question, data, { example = false, number = 1 } = {}) {
   ].filter(Boolean);
 }
 
+// Errors that mean Ollama still needs setting up get step-by-step help instead of an error.
+const OLLAMA_DOWNLOAD = "https://ollama.com/download";
+
+function ollamaGuide(data) {
+  const code = (text) => el("code", {}, text);
+  const link = el("a", { href: OLLAMA_DOWNLOAD, target: "_blank", rel: "noopener noreferrer" }, "ollama.com/download");
+  const model = data.model || "";
+  const guides = {
+    provider_connection_error: {
+      title: t("Falta ligar o Ollama"),
+      intro: t("O Otter Data usa o Ollama para entender as perguntas e escrever as respostas, e ele não está respondendo neste computador. Para começar:"),
+      steps: [
+        [t("Baixe e instale o Ollama em "), link, t(". Se ele já estiver instalado, abra o app do Ollama.")],
+        [t("Para usar o modelo padrão, na nuvem, abra um terminal e rode "), code("ollama signin"),
+          t(". Para usar sem internet, baixe um modelo local: "), code("ollama pull qwen2.5:7b"), "."],
+        [t("Volte aqui e pergunte de novo.")],
+      ],
+    },
+    provider_model_unavailable: {
+      title: t("Este modelo não está no seu Ollama"),
+      intro: t("O modelo {model} não foi encontrado no Ollama deste computador.", { model }),
+      steps: [
+        [t("Para um modelo local, abra um terminal e rode "), code(`ollama pull ${model}`), "."],
+        [t("Para um modelo na nuvem (terminado em -cloud), rode "), code("ollama signin"), "."],
+        [t("Ou escolha outro modelo no seletor abaixo da caixa de pergunta.")],
+      ],
+    },
+    provider_authentication_error: {
+      title: t("Entre na sua conta do Ollama"),
+      intro: t("Os modelos na nuvem, como o padrão, pedem login na sua conta do Ollama."),
+      steps: [
+        [t("Abra um terminal e rode "), code("ollama signin"), "."],
+        [t("Ou escolha um modelo local no seletor abaixo da caixa de pergunta.")],
+        [t("Volte aqui e pergunte de novo.")],
+      ],
+    },
+  };
+  return guides[data.code] || null;
+}
+
 function noticeMessage(data, question) {
+  const guide = ollamaGuide(data);
+  if (guide) {
+    return el("div", { class: "say notice setup" },
+      el("h3", { class: "notice-title" }, guide.title),
+      el("p", { class: "say-text" }, guide.intro),
+      el("ol", { class: "setup-steps" }, guide.steps.map((parts) => el("li", {}, parts))),
+      question ? el("button", { type: "button", class: "retry-button", onclick: () => ask(question) }, t("Tentar novamente")) : null,
+    );
+  }
   const failed = data.status === "error";
   const retry = failed && question
     ? el("button", { type: "button", class: "retry-button", onclick: () => ask(question) }, t("Tentar novamente"))

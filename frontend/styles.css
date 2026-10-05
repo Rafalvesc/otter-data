@@ -491,6 +491,11 @@ body:has(.thread) { overflow: hidden; }
 .retry-button::after { content: " ]"; }
 .retry-button:hover, .retry-button:focus-visible { background: var(--action-soft); color: var(--action-hover); }
 .notice.denied .notice-title, .notice.error .notice-title { color: var(--error); }
+.setup-steps { margin: 10px 0 0; padding-left: 22px; display: grid; gap: 6px; font-size: 14.5px; line-height: 1.6; color: var(--ink-2); }
+.setup-steps li::marker { color: var(--action); font-weight: 700; }
+.setup-steps a { color: var(--action); text-underline-offset: 3px; }
+.setup-steps a:hover { color: var(--action-hover); }
+.setup-steps code { padding: 1px 6px; background: var(--paper-2); border: 1px solid var(--rule); font-size: 13px; white-space: nowrap; }
 
 .follow-ups { max-width: var(--reading-width); }
 .follow-label { margin: 0 0 4px; color: var(--ink-3); }

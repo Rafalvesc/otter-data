@@ -19,7 +19,7 @@ import duckdb
 
 from backend.config import Settings
 from backend.sources.context import DIALECT, CatalogContext
-from backend.sources.engines import Connection, SourceError, discover
+from backend.sources.engines import Connection, SourceError, discover, run_query
 from backend.sources.executor import SourceExecutor
 from backend.sources.models import (
     Catalog,
@@ -29,10 +29,16 @@ from backend.sources.models import (
     SourceSummary,
     SourceUpdate,
 )
+from backend.sources.mongo import import_mongodb
 from backend.tools.sql_validator import SQLValidator
 
 KEYRING_SERVICE = "OtterData"
 SAMPLE_ID = "sample"
+# Categorical values offered to the model: text columns with at most MAX_VALUES distinct values,
+# probing at most MAX_VALUE_COLUMNS columns per source.
+MAX_VALUES = 12
+MAX_VALUE_COLUMNS = 40
+TEXT_TYPE = re.compile(r"char|text|string|enum")
 
 
 class RegistryError(Exception):
@@ -237,9 +243,14 @@ class SourceRegistry:
         raise RegistryError("Base de dados não encontrada.", 404)
 
     def _connection(self, config: SourceConfig) -> Connection:
-        if config.kind == "csv":
+        """Where queries run: imported CSV and MongoDB sources live in a local DuckDB copy."""
+        if config.kind in ("csv", "mongodb"):
             return Connection(kind="csv", path=self._duckdb_path(config.id))
-        password = self._secrets.get(config.id)
+        return self._server(config)
+
+    def _server(self, config: SourceConfig) -> Connection:
+        """The database server itself, with the password from the vault."""
+        password = self._secrets.get(config.id) if config.user else ""
         if password is None:
             raise RegistryError("A senha desta base não está no cofre; remova e conecte de novo.")
         return Connection(
@@ -253,10 +264,11 @@ class SourceRegistry:
 
     def summary(self, config: SourceConfig, catalog: Catalog | None = None) -> SourceSummary:
         catalog = catalog or self._load_catalog(config.id)
+        user = f"{config.user}@" if config.user else ""
         location = (
             "arquivo CSV importado"
             if config.kind == "csv"
-            else f"{config.user}@{config.host}:{config.port}/{config.database}"
+            else f"{user}{config.host}:{config.port}/{config.database}"
         )
         return SourceSummary(
             id=config.id,
@@ -293,6 +305,8 @@ class SourceRegistry:
     # ------------------------------------------------------------ changes
 
     def add_database(self, data: DatabaseSourceInput) -> SourceSummary:
+        if data.kind == "mongodb":
+            return self._add_mongodb(data)
         schema = data.schema_name or ("public" if data.kind == "postgres" else data.database)
         connection = Connection(
             kind=data.kind,
@@ -319,6 +333,57 @@ class SourceRegistry:
             self._save_catalog(config.id, catalog)
             self._write_index([*self._read_index(), config])
         return self.summary(config, catalog)
+
+    def _add_mongodb(self, data: DatabaseSourceInput) -> SourceSummary:
+        config = SourceConfig(
+            id=f"mongodb-{uuid4().hex[:10]}",
+            name=data.name,
+            kind="mongodb",
+            host=data.host,
+            port=data.port,
+            database=data.database,
+            user=data.user or None,
+            schema_name="main",
+            auth_source=data.schema_name or "admin",
+            allow_rows_to_llm=data.allow_rows_to_llm,
+        )
+        password = data.password.get_secret_value()
+        db_path = self._duckdb_path(config.id)
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            catalog = self._import_mongodb(config, password)
+        except Exception:
+            db_path.unlink(missing_ok=True)
+            raise
+        with self._lock:
+            if config.user:
+                self._secrets.set(config.id, password)
+            self._save_catalog(config.id, catalog)
+            self._write_index([*self._read_index(), config])
+        return self.summary(config, catalog)
+
+    def _import_mongodb(self, config: SourceConfig, password: str) -> Catalog:
+        """Copy the collections into the source's DuckDB file and describe the copy."""
+        server = Connection(
+            kind="mongodb",
+            host=config.host,
+            port=config.port,
+            database=config.database,
+            user=config.user,
+            password=password,
+        )
+        try:
+            notes = import_mongodb(
+                server,
+                config.auth_source or "admin",
+                self._duckdb_path(config.id),
+                timeout=self._settings.query_timeout_seconds * 6,
+            )
+        except SourceError as error:
+            raise RegistryError(error.message) from None
+        catalog = self._discover(self._connection(config), "main")
+        catalog.skipped.extend(notes)
+        return catalog
 
     def add_csv(
         self, name: str, filename: str, csv_path: Path, allow_rows_to_llm: bool
@@ -353,7 +418,11 @@ class SourceRegistry:
 
     def refresh(self, source_id: str) -> SourceSummary:
         config = self.config(source_id)
-        catalog = self._discover(self._connection(config), config.schema_name)
+        if config.kind == "mongodb":
+            # A new copy of the collections; the previous one stays if the import fails.
+            catalog = self._import_mongodb(config, self._server(config).password or "")
+        else:
+            catalog = self._discover(self._connection(config), config.schema_name)
         with self._lock:
             self._save_catalog(source_id, catalog)
             self._runtimes.pop(source_id, None)
@@ -395,6 +464,51 @@ class SourceRegistry:
 
     # ------------------------------------------------------------ runtime
 
+    def categorical_values(
+        self, config: SourceConfig, catalog: Catalog, validator: SQLValidator
+    ) -> dict[str, dict[str, list[str]]]:
+        """Distinct values of short text columns (status, category...), so the model filters with
+        the real spelling instead of guessing ('cancelled', not 'Cancelled').
+
+        Only called for sources whose result rows the user lets the model read. Hidden columns
+        are not in the catalog, ids are skipped, and each query goes through the validator.
+        """
+        found: dict[str, dict[str, list[str]]] = {}
+        probed = 0
+        connection = self._connection(config)
+        for table, spec in catalog.tables.items():
+            for column, kind in spec.columns.items():
+                if not TEXT_TYPE.search(kind) or column == "id" or column.endswith("_id"):
+                    continue
+                if probed == MAX_VALUE_COLUMNS:
+                    return found
+                probed += 1
+                prepared = validator.prepare(
+                    f"SELECT DISTINCT {column} FROM {config.schema_name}.{table} "
+                    f"WHERE {column} IS NOT NULL LIMIT {MAX_VALUES + 1}"
+                )
+                if not prepared.validation.allowed:
+                    continue  # e.g. a reserved word as name; the model just won't get values
+                try:
+                    result = run_query(
+                        connection,
+                        prepared.validation.normalized_sql,
+                        prepared.parameter_values,
+                        timeout=self._settings.query_timeout_seconds,
+                        max_rows=MAX_VALUES + 1,
+                        max_bytes=20_000,
+                    )
+                except SourceError:
+                    continue
+                values = [next(iter(row.values())) for row in result.rows]
+                # Short labels only: not free text, and not JSON lists kept from MongoDB arrays.
+                if len(values) <= MAX_VALUES and all(
+                    isinstance(value, str) and len(value) <= 60 and not value.startswith(("[", "{"))
+                    for value in values
+                ):
+                    found.setdefault(table, {})[column] = sorted(values)
+        return found
+
     def runtime(self, source_id: str) -> SourceRuntime:
         with self._lock:
             if source_id in self._runtimes:
@@ -407,11 +521,16 @@ class SourceRegistry:
                 schema=config.schema_name,
                 dialect=dialect,
             )
+            values = (
+                self.categorical_values(config, catalog, validator)
+                if config.allow_rows_to_llm
+                else {}
+            )
             runtime = SourceRuntime(
                 id=config.id,
                 name=config.name,
                 kind=config.kind,
-                context=CatalogContext(config, catalog),
+                context=CatalogContext(config, catalog, values=values),
                 validator=validator,
                 executor=SourceExecutor(self._settings, validator, self._connection(config)),
                 allow_rows_to_llm=config.allow_rows_to_llm,

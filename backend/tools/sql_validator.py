@@ -205,6 +205,31 @@ def nested_aggregate(tree: exp.Expression) -> bool:
     return False
 
 
+def unlabeled_groups(tree: exp.Expression) -> None:
+    """The answer's rows must say which group they belong to: a top-level GROUP BY column that
+    is not selected returns bare numbers ("1594, 234, 172" with no status). Subqueries may group
+    without selecting the key (e.g. counts per customer that the outer query averages)."""
+    group = tree.args.get("group")
+    if group is None:
+        return
+    selected = {
+        (column.table, column.name)
+        for expression in tree.expressions
+        for column in expression.find_all(exp.Column)
+    }
+    missing = [
+        key.name
+        for key in group.expressions
+        if isinstance(key, exp.Column) and (key.table, key.name) not in selected
+    ]
+    if missing:
+        raise RejectedSQL(
+            QueryCode.UNSUPPORTED_SQL,
+            f"Inclua no SELECT as colunas do GROUP BY ({', '.join(missing)}), para que cada "
+            "linha do resultado diga a que grupo pertence.",
+        )
+
+
 def unresolved_message(error: Exception) -> str:
     found = UNRESOLVED.search(str(error))
     if not found:
@@ -426,6 +451,7 @@ class SQLValidator:
         sources = self._check_relations(qualified)
         self._check_joins(qualified)
         self._check_fan_out(qualified)
+        unlabeled_groups(qualified)
         names = qualified.named_selects
         if not names or len(names) != len(set(names)):
             raise RejectedSQL(QueryCode.COLUMN_NOT_ALLOWED, "Use nomes de saída distintos.")

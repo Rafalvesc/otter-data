@@ -179,6 +179,19 @@ def test_chat_capabilities_describe_structure_without_values_or_hidden_columns(r
     assert "e_mail_cliente" not in text and "Caneca" not in text
 
 
+def test_category_values_reach_the_model_only_when_results_may_be_read(registry, sales):
+    schema = registry.runtime(sales.id).context.explore_context()["schema"]
+    assert "values" not in schema["vendas_2026"]  # default: the model never sees values
+    registry.update(sales.id, SourceUpdate(allow_rows_to_llm=True))
+    schema = registry.runtime(sales.id).context.explore_context()["schema"]
+    # Real spellings of short text columns; never hidden columns, dates, numbers or ids.
+    assert schema["vendas_2026"]["values"] == {
+        "produto": ["Caderno", "Caneca"],
+        "regiao": ["Norte", "Sul"],
+    }
+    assert "x.com" not in json.dumps(schema)
+
+
 def test_more_csv_files_become_tables_and_settings_can_change(tmp_path, registry, sales):
     extra = tmp_path / "metas.csv"
     extra.write_text("mes,meta\n2026-01-01,40\n", encoding="utf-8")

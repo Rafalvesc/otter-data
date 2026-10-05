@@ -420,3 +420,22 @@ Verificada em **03/10/2026** com `qwen2.5:3b` (local) e `gemma4:31b-cloud`.
 - Reavaliação: `gemma4:31b-cloud` 5/5 nos quatro cenários de novo. `qwen2.5:3b` oscila entre rodadas mesmo com temperatura 0 (A/B com e sem a linha de idioma: diferenças de 1–2 respostas nos dois sentidos); faixas registradas no README.
 - CI simulado em Linux (container Python 3.12, sem `.env`): `ruff check`, `ruff format --check` e `pytest -q` passando (299 testes; os demais exigem Windows ou PostgreSQL).
 - Testes: 351 passando com integração (2 ignorados: MySQL).
+
+## Instalador com a identidade do app e ajuda para instalar o Ollama
+
+Verificada em **04/10/2026**, compilando com Inno Setup 6.7.3 e capturando cada tela.
+
+- Instalador: fundo creme do app (`#F6F0E4`) e escuro (`#151B1D`) conforme o tema do Windows (`WizardStyle=modern dynamic`), sem linhas divisórias; imagem lateral com o logo, "Ask your data." e o traço terracota, em versão clara e escura e em quatro escalas de DPI; lontra no canto das telas internas; tela de boas-vindas ativada com texto próprio (inglês e português). Imagens geradas por `scripts/build_installer_images.py`. O script exige Inno Setup 6.7+ e o workflow atualiza o Inno antes de compilar.
+- Sem Ollama instalado, a tela final explica o próximo passo e traz uma opção marcada "Baixar o Ollama" (abre ollama.com/download); antes era uma caixa de mensagem do Windows.
+- No app, perguntas que falham por Ollama desligado, modelo ausente ou login pendente mostram um guia passo a passo (link de download, `ollama signin`, `ollama pull`, botão de tentar de novo) em vez de um erro genérico; links abrem no navegador do sistema no app desktop. Conferido no navegador com as três respostas simuladas, em inglês e português.
+- Correção: o `Dockerfile` ainda copiava a pasta `examples/`, removida antes da publicação, e o build do Docker falhava.
+- Testes: 351 passando com integração (2 ignorados: MySQL).
+
+## MongoDB como base própria
+
+Verificada em **05/10/2026** com `gemma4:31b-cloud` e um MongoDB 8 real em container temporário (removido no fim).
+
+- MongoDB entra como cópia local em DuckDB (`backend/sources/mongo.py`): coleções viram tabelas, subdocumentos viram colunas, listas de subdocumentos viram tabelas filhas ligadas ao pai e outras listas viram texto JSON; até 100 mil documentos por coleção; "Atualizar" reimporta e mantém a cópia anterior se falhar. Formulário com porta 27017, banco de autenticação (padrão `admin`) e usuário opcional; hosts `*.mongodb.net` usam `mongodb+srv`. Dependências novas: `pymongo` 4.18.2 e `dnspython` 2.8.0, incluídas no executável.
+- Teste real: base com 300 clientes, 20 produtos e 2.000 pedidos com itens embutidos, usuário só de leitura (o servidor recusou uma escrita com ele). Contagens, receita paga (623.789,43) e receita por categoria bateram exatamente com o cálculo feito no seed; e-mail e endereço ficaram ocultos; ligações `orders.customer_id`, `orders_items.orders_id` e `orders_items.product_id` detectadas. Banco de autenticação errado gerou a mensagem fixa de acesso recusado. Encontrado e corrigido: nomes de banco com hífen (válidos no MongoDB) eram recusados.
+- Problema geral encontrado no teste: sem ver os dados, o modelo filtrava `status = 'Cancelled'` (o valor real é `cancelled`) e respondia "zero cancelados". Correções: (1) nas bases com leitura de resultados permitida, o modelo recebe os valores distintos de colunas de texto curtas, obtidos por consultas validadas e mantidos só em memória; (2) sem essa permissão, o prompt proíbe filtrar por texto adivinhado e pede agrupamento; (3) o validador recusa `GROUP BY` principal sem a coluna agrupada no resultado. Resultado ao vivo: com permissão, 3 de 3 respostas exatas (234 cancelados, 172 pendentes, 1.594 pagos, inglês e português); sem permissão, tabela com todos os status e contagens corretas, em vez de zero.
+- Testes: 362 passando com integração (2 ignorados: MySQL), incluindo 9 de MongoDB com servidor simulado, valores de categoria só com permissão e a regra do `GROUP BY`.

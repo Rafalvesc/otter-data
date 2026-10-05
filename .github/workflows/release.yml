@@ -32,9 +32,11 @@ jobs:
       - name: Gerar o instalador (Inno Setup)
         shell: pwsh
         run: |
-          if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) { choco install innosetup -y --no-progress }
+          # The wizard's look (PNG images, automatic dark mode) needs Inno Setup 6.7 or newer.
+          choco upgrade innosetup -y --no-progress
           $version = "${{ github.ref_name }}".TrimStart("v")
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$version" packaging\installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Publicar na Release
         uses: softprops/action-gh-release@v2
         with:

@@ -4,8 +4,13 @@ from backend.models.analysis import IntentDecision
 from backend.sources.models import Catalog, SourceConfig
 from backend.tools.context import ContextError
 
-DIALECT = {"postgres": "postgres", "mysql": "mysql", "csv": "duckdb"}
-KIND_LABEL = {"postgres": "PostgreSQL", "mysql": "MySQL", "csv": "CSV importado (DuckDB)"}
+DIALECT = {"postgres": "postgres", "mysql": "mysql", "csv": "duckdb", "mongodb": "duckdb"}
+KIND_LABEL = {
+    "postgres": "PostgreSQL",
+    "mysql": "MySQL",
+    "csv": "CSV importado (DuckDB)",
+    "mongodb": "MongoDB, cópia local em DuckDB",
+}
 DATE_HINT = {
     "postgres": "date_trunc('month', coluna) para agrupar por mês",
     "mysql": "DATE_FORMAT(coluna, '%Y-%m-01') para agrupar por mês; YEAR(coluna), MONTH(coluna)",
@@ -18,19 +23,32 @@ class CatalogContext:
 
     metrics_enabled = False
 
-    def __init__(self, config: SourceConfig, catalog: Catalog, profile: dict | None = None):
+    def __init__(
+        self,
+        config: SourceConfig,
+        catalog: Catalog,
+        profile: dict | None = None,
+        values: dict[str, dict[str, list[str]]] | None = None,
+    ):
         self.config = config
         self.catalog = catalog
+        # Possible values of low-cardinality text columns, only for sources whose results the
+        # model may read (see SourceRegistry.categorical_values).
+        self.values = values or {}
         self.dialect = DIALECT[config.kind]
         # Optional documentation for a known base (the embedded sample): label, domain,
         # metric definitions and table notes. Never data values.
         self.profile = profile or {}
 
     def _schema(self) -> dict:
-        return {
+        schema = {
             table: {"columns": spec.columns, "relationships": spec.relationships}
             for table, spec in self.catalog.tables.items()
         }
+        for table, columns in self.values.items():
+            if table in schema:
+                schema[table]["values"] = columns
+        return schema
 
     def intent_context(self, exploration_enabled: bool = True) -> dict:
         return {
